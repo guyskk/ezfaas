@@ -2,6 +2,6 @@
 
 mkdir -p dist/
 
-go build -o dist/ezfaas internal/main.go
+go build -o dist/ezfaas main.go
 
 ls -lh dist/
