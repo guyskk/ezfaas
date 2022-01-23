@@ -64,7 +64,7 @@ func DoDeploy(params DeployParams) {
 	}
 	tomlLoads := toml.Unmarshal
 	if tomlLoads == nil {
-		fmt.Println("")
+		fmt.Print("")
 	}
 	var env map[string]string
 	hasEnv := params.Envfile != ""
