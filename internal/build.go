@@ -19,7 +19,7 @@ func _randomHex(n int) string {
 func GetBuildId(commitId string) string {
 	var suffix string
 	if commitId == "" {
-		suffix = _randomHex(3)
+		suffix = _randomHex(2)
 	} else {
 		suffix = commitId[:6]
 	}
@@ -54,7 +54,7 @@ func Build(p BuildParams) (*BuildResult, error) {
 	}
 	log.Printf("[INFO] COMMIT_ID=%s", commitId)
 	log.Printf("[INFO] BUILD_ID=%s", buildId)
-	log.Printf("[INFO] Image=%s", image)
+	log.Printf("[INFO] IMAGE=%s", image)
 	buildParams := DockerBuildParams{
 		File:      p.Dockerfile,
 		Path:      p.Path,

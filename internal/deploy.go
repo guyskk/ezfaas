@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/aliyun/fc-go-sdk"
@@ -10,6 +11,7 @@ import (
 )
 
 type _FunctionConfig struct {
+	Region                     string
 	ServiceName                string
 	FunctionName               string
 	ContainerImage             string
@@ -21,10 +23,25 @@ func _updateFunction(
 	accessConfig *AccessConfig,
 	functionConfig *_FunctionConfig,
 ) (*fc.UpdateFunctionOutput, error) {
-	endpoint := fmt.Sprintf(
-		"%s.cn-zhangjiakou.fc.aliyuncs.com",
-		accessConfig.ALIBABA_CLOUD_ACCOUNT_ID,
+	log.Printf(
+		"[INFO] Service=%s Function=%s",
+		functionConfig.ServiceName,
+		functionConfig.FunctionName,
 	)
+	log.Printf(
+		"[INFO] ContainerImage=%s",
+		functionConfig.ContainerImage,
+	)
+	log.Printf(
+		"[INFO] UpdateEnvironmentVariables=%t",
+		functionConfig.UpdateEnvironmentVariables,
+	)
+	endpoint := fmt.Sprintf(
+		"%s.%s.fc.aliyuncs.com",
+		accessConfig.ALIBABA_CLOUD_ACCOUNT_ID,
+		functionConfig.Region,
+	)
+	log.Printf("[INFO] Deploy Endpoint=%s", endpoint)
 	client, err := fc.NewClient(
 		endpoint,
 		"2016-08-15",
@@ -50,11 +67,23 @@ func _updateFunction(
 	return output, err
 }
 
+func _getRegionFromRepository(repository string) string {
+	// repository example: registry.cn-zhangjiakou.aliyuncs.com/space/name
+	parts := strings.SplitN(repository, ".", 3)
+	if len(parts) < 3 {
+		log.Fatalf("No region in repository %s", repository)
+	}
+	return parts[1]
+}
+
 type DeployParams struct {
-	ServiceName    string
-	FunctionName   string
-	ContainerImage string
-	Envfile        string
+	ServiceName  string
+	FunctionName string
+	Envfile      string
+	Repository   string
+	BuildId      string
+	Dockerfile   string
+	BuildPath    string
 }
 
 func DoDeploy(params DeployParams) {
@@ -78,10 +107,31 @@ func DoDeploy(params DeployParams) {
 			log.Fatal(err)
 		}
 	}
+	if params.BuildId == "" {
+		buildResult, err := Build(BuildParams{
+			Dockerfile: params.Dockerfile,
+			Path:       params.BuildPath,
+			Repository: params.Repository,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		params.BuildId = buildResult.BuildId
+	}
+	containerImage := fmt.Sprintf("%s:%s", params.Repository, params.BuildId)
+	region := _getRegionFromRepository(params.Repository)
+
+	log.Printf("[INFO] Push %s", containerImage)
+	err = DockerPush(DockerPushParams{Image: containerImage})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	functionConfig := _FunctionConfig{
+		Region:                     region,
 		FunctionName:               params.FunctionName,
 		ServiceName:                params.ServiceName,
-		ContainerImage:             params.ContainerImage,
+		ContainerImage:             containerImage,
 		UpdateEnvironmentVariables: hasEnv,
 		EnvironmentVariables:       env,
 	}

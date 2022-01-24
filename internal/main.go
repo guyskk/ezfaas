@@ -17,16 +17,24 @@ func _MakeDeployCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(
-		&params.ServiceName, "service", "", "service name [required]")
+		&params.ServiceName, "service", "", "Service name [required]")
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().StringVar(
-		&params.FunctionName, "function", "", "function name [required]")
+		&params.FunctionName, "function", "", "Function name [required]")
 	cmd.MarkFlagRequired("function")
+
 	cmd.Flags().StringVar(
-		&params.ContainerImage, "image", "", "container image [required]")
-	cmd.MarkFlagRequired("image")
+		&params.Repository, "repository", "", "Docker image repository [required]")
+	cmd.MarkFlagRequired("repository")
 	cmd.Flags().StringVar(
-		&params.Envfile, "envfile", "", "envfile path")
+		&params.BuildId, "build-id", "", "Existed build id (image version)")
+	cmd.Flags().StringVar(
+		&params.Dockerfile, "dockerfile", "Dockerfile", "Dockerfile path")
+	cmd.Flags().StringVar(
+		&params.BuildPath, "path", ".", "Docker build path")
+
+	cmd.Flags().StringVar(
+		&params.Envfile, "envfile", "", "Envfile path")
 	return &cmd
 }
 
@@ -44,7 +52,7 @@ func _MakeBuildCommand() *cobra.Command {
 	cmd.Flags().StringVar(
 		&params.Path, "path", ".", "Docker build path")
 	cmd.Flags().StringVar(
-		&params.Repository, "repository", "", "docker image repository [required]")
+		&params.Repository, "repository", "", "Docker image repository [required]")
 	cmd.MarkFlagRequired("repository")
 	return &cmd
 }
