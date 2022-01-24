@@ -16,6 +16,7 @@ func _MakeDeployCommand() *cobra.Command {
 			DoDeploy(params)
 		},
 	}
+	cmd.Flags().SortFlags = false
 	cmd.Flags().StringVar(
 		&params.ServiceName, "service", "", "Service name [required]")
 	cmd.MarkFlagRequired("service")
@@ -35,6 +36,8 @@ func _MakeDeployCommand() *cobra.Command {
 
 	cmd.Flags().StringVar(
 		&params.Envfile, "envfile", "", "Envfile path")
+	cmd.Flags().BoolVar(
+		&params.Yes, "yes", false, "Confirm deploy")
 	return &cmd
 }
 
@@ -47,6 +50,7 @@ func _MakeBuildCommand() *cobra.Command {
 			DoBuild(params)
 		},
 	}
+	cmd.Flags().SortFlags = false
 	cmd.Flags().StringVar(
 		&params.Dockerfile, "dockerfile", "Dockerfile", "Dockerfile path")
 	cmd.Flags().StringVar(

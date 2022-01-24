@@ -8,6 +8,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/aliyun/fc-go-sdk"
 	"github.com/joho/godotenv"
+	"github.com/manifoldco/promptui"
 )
 
 type _FunctionConfig struct {
@@ -17,6 +18,16 @@ type _FunctionConfig struct {
 	ContainerImage             string
 	UpdateEnvironmentVariables bool
 	EnvironmentVariables       map[string]string
+	Yes                        bool
+}
+
+func _comfirmDeploy() bool {
+	prompt := promptui.Prompt{
+		Label:     "Confirm Deploy",
+		IsConfirm: true,
+	}
+	_, err := prompt.Run()
+	return err == nil
 }
 
 func _updateFunction(
@@ -54,6 +65,8 @@ func _updateFunction(
 	request := fc.NewUpdateFunctionInput(
 		functionConfig.ServiceName,
 		functionConfig.FunctionName,
+	).WithRuntime(
+		"custom-container",
 	).WithCustomContainerConfig(
 		fc.NewCustomContainerConfig().WithImage(
 			functionConfig.ContainerImage,
@@ -62,6 +75,11 @@ func _updateFunction(
 	if functionConfig.UpdateEnvironmentVariables {
 		request = request.WithEnvironmentVariables(
 			functionConfig.EnvironmentVariables)
+	}
+	if !functionConfig.Yes {
+		if !_comfirmDeploy() {
+			log.Fatalf("Canceled!")
+		}
 	}
 	output, err := client.UpdateFunction(request)
 	return output, err
@@ -84,6 +102,7 @@ type DeployParams struct {
 	BuildId      string
 	Dockerfile   string
 	BuildPath    string
+	Yes          bool
 }
 
 func DoDeploy(params DeployParams) {
@@ -134,6 +153,7 @@ func DoDeploy(params DeployParams) {
 		ContainerImage:             containerImage,
 		UpdateEnvironmentVariables: hasEnv,
 		EnvironmentVariables:       env,
+		Yes:                        params.Yes,
 	}
 	output, err := _updateFunction(accessConfig, &functionConfig)
 	if err != nil {
