@@ -45,7 +45,7 @@ func DockerBuild(p DockerBuildParams) error {
 	}
 	for k, v := range p.BuildArgs {
 		commandArgs = append(commandArgs, "--build-arg")
-		commandArgs = append(commandArgs, fmt.Sprintf("%s=\"%s\"", k, v))
+		commandArgs = append(commandArgs, fmt.Sprintf("%s=%s", k, v))
 	}
 	commandArgs = append(commandArgs, p.Path)
 	return Shell("docker", commandArgs...)
