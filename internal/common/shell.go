@@ -1,8 +1,7 @@
-package internal
+package common
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,15 +16,14 @@ func Shell(name string, arg ...string) error {
 	return err
 }
 
-/* Get current git commit id, return "" if not available */
-func GetCommitId() string {
+/* Get current git commit id */
+func GetCommitId() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("Get commit id failed: %s", err)
-		return ""
+		return "", fmt.Errorf("get commit id failed: %s", err)
 	}
-	return strings.TrimSpace(string(output))
+	return strings.TrimSpace(string(output)), nil
 }
 
 type DockerBuildParams = struct {
@@ -49,6 +47,23 @@ func DockerBuild(p DockerBuildParams) error {
 	}
 	commandArgs = append(commandArgs, p.Path)
 	return Shell("docker", commandArgs...)
+}
+
+/* Get docker image digest value */
+func GetDockerImageDigest(image string) (string, error) {
+	outFormat := "{{index .RepoDigests 0}}"
+	cmd := exec.Command("docker", "image", "inspect", image, "--format", outFormat)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("get docker image digest failed: %s", err)
+	}
+	// example: ccr.ccs.tencentyun.com/ezfuns/shopant@sha256:1391376a56dexxx
+	outputStr := strings.TrimSpace(string(output))
+	parts := strings.SplitAfter(outputStr, "@")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("not found docker image digest %s", outputStr)
+	}
+	return parts[1], nil
 }
 
 type DockerPushParams struct {

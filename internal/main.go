@@ -7,23 +7,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func _MakeDeployCommand() *cobra.Command {
-	var params DeployParams
-	cmd := cobra.Command{
-		Use:   "deploy",
-		Short: "deploy function",
-		Run: func(cmd *cobra.Command, args []string) {
-			DoDeploy(params)
-		},
-	}
+func _AddBaseDeployFlags(cmd *cobra.Command, params *BaseDeployParams) {
 	cmd.Flags().SortFlags = false
-	cmd.Flags().StringVar(
-		&params.ServiceName, "service", "", "Service name [required]")
-	cmd.MarkFlagRequired("service")
 	cmd.Flags().StringVar(
 		&params.FunctionName, "function", "", "Function name [required]")
 	cmd.MarkFlagRequired("function")
-
 	cmd.Flags().StringVar(
 		&params.Repository, "repository", "", "Docker image repository [required]")
 	cmd.MarkFlagRequired("repository")
@@ -33,11 +21,41 @@ func _MakeDeployCommand() *cobra.Command {
 		&params.Dockerfile, "dockerfile", "Dockerfile", "Dockerfile path")
 	cmd.Flags().StringVar(
 		&params.BuildPath, "path", ".", "Docker build path")
-
 	cmd.Flags().StringVar(
 		&params.Envfile, "envfile", "", "Envfile path")
 	cmd.Flags().BoolVar(
 		&params.Yes, "yes", false, "Confirm deploy")
+}
+
+func _MakeDeployAliyunCommand() *cobra.Command {
+	var params AliyunDeployParams
+	cmd := cobra.Command{
+		Use:   "deploy-aliyun",
+		Short: "deploy function to aliyun",
+		Run: func(cmd *cobra.Command, args []string) {
+			DoDeployAliyun(params)
+		},
+	}
+	cmd.Flags().StringVar(
+		&params.ServiceName, "service", "", "Service name [required]")
+	cmd.MarkFlagRequired("service")
+	_AddBaseDeployFlags(&cmd, &params.BaseDeployParams)
+	return &cmd
+}
+
+func _MakeDeployTencentCommand() *cobra.Command {
+	var params TencentDeployParams
+	cmd := cobra.Command{
+		Use:   "deploy-tencent",
+		Short: "deploy function to tencent",
+		Run: func(cmd *cobra.Command, args []string) {
+			DoDeployTencent(params)
+		},
+	}
+	cmd.Flags().StringVar(
+		&params.Region, "region", "", "Region name [required]")
+	cmd.MarkFlagRequired("service")
+	_AddBaseDeployFlags(&cmd, &params.BaseDeployParams)
 	return &cmd
 }
 
@@ -72,7 +90,8 @@ func Main() {
 			}
 		},
 	}
-	cli.AddCommand(_MakeDeployCommand())
+	cli.AddCommand(_MakeDeployAliyunCommand())
+	cli.AddCommand(_MakeDeployTencentCommand())
 	cli.AddCommand(_MakeBuildCommand())
 	err := cli.Execute()
 	if err != nil {

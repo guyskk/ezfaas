@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/guyskk/ezfaas/internal/common"
 )
 
 func _randomHex(n int) string {
@@ -16,13 +18,7 @@ func _randomHex(n int) string {
 	return hex.EncodeToString(bytes)
 }
 
-func GetBuildId(commitId string) string {
-	var suffix string
-	if commitId == "" {
-		suffix = _randomHex(2)
-	} else {
-		suffix = commitId[:6]
-	}
+func GetBuildId(suffix string) string {
 	now := time.Now().UTC()
 	return fmt.Sprintf(
 		"%04d%02d%02d-%02d%02d%02d-%s",
@@ -45,8 +41,15 @@ type BuildResult struct {
 }
 
 func Build(p BuildParams) (*BuildResult, error) {
-	commitId := GetCommitId()
-	buildId := GetBuildId(commitId)
+	var suffix string
+	commitId, err := common.GetCommitId()
+	if err != nil {
+		log.Printf("[WARN] %s", err)
+		suffix = _randomHex(2)
+	} else {
+		suffix = commitId[:6]
+	}
+	buildId := GetBuildId(suffix)
 	image := fmt.Sprintf("%s:%s", p.Repository, buildId)
 	var buildArgs = map[string]string{
 		"EZFAAS_COMMIT_ID": commitId,
@@ -55,15 +58,15 @@ func Build(p BuildParams) (*BuildResult, error) {
 	log.Printf("[INFO] COMMIT_ID=%s", commitId)
 	log.Printf("[INFO] BUILD_ID=%s", buildId)
 	log.Printf("[INFO] IMAGE=%s", image)
-	buildParams := DockerBuildParams{
+	buildParams := common.DockerBuildParams{
 		File:      p.Dockerfile,
 		Path:      p.Path,
 		Image:     image,
 		BuildArgs: buildArgs,
 	}
-	err := DockerBuild(buildParams)
-	if err != nil {
-		return nil, err
+	buildErr := common.DockerBuild(buildParams)
+	if buildErr != nil {
+		return nil, buildErr
 	}
 	result := BuildResult{
 		BuildId:  buildId,

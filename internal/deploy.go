@@ -1,101 +1,18 @@
 package internal
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/aliyun/fc-go-sdk"
+	"github.com/guyskk/ezfaas/internal/aliyun"
+	"github.com/guyskk/ezfaas/internal/common"
+	"github.com/guyskk/ezfaas/internal/tencent"
 	"github.com/joho/godotenv"
-	"github.com/manifoldco/promptui"
 )
 
-type _FunctionConfig struct {
-	Region                     string
-	ServiceName                string
-	FunctionName               string
-	ContainerImage             string
-	UpdateEnvironmentVariables bool
-	EnvironmentVariables       map[string]string
-	Yes                        bool
-}
-
-func _comfirmDeploy() bool {
-	prompt := promptui.Prompt{
-		Label:     "Confirm Deploy",
-		IsConfirm: true,
-	}
-	_, err := prompt.Run()
-	return err == nil
-}
-
-func _updateFunction(
-	accessConfig *AccessConfig,
-	functionConfig *_FunctionConfig,
-) (*fc.UpdateFunctionOutput, error) {
-	log.Printf(
-		"[INFO] Service=%s Function=%s",
-		functionConfig.ServiceName,
-		functionConfig.FunctionName,
-	)
-	log.Printf(
-		"[INFO] ContainerImage=%s",
-		functionConfig.ContainerImage,
-	)
-	log.Printf(
-		"[INFO] UpdateEnvironmentVariables=%t",
-		functionConfig.UpdateEnvironmentVariables,
-	)
-	endpoint := fmt.Sprintf(
-		"%s.%s.fc.aliyuncs.com",
-		accessConfig.ALIBABA_CLOUD_ACCOUNT_ID,
-		functionConfig.Region,
-	)
-	log.Printf("[INFO] Deploy Endpoint=%s", endpoint)
-	client, err := fc.NewClient(
-		endpoint,
-		"2016-08-15",
-		accessConfig.ALIBABA_CLOUD_ACCESS_KEY_ID,
-		accessConfig.ALIBABA_CLOUD_ACCESS_KEY_SECRET,
-	)
-	if err != nil {
-		return nil, err
-	}
-	request := fc.NewUpdateFunctionInput(
-		functionConfig.ServiceName,
-		functionConfig.FunctionName,
-	).WithRuntime(
-		"custom-container",
-	).WithCustomContainerConfig(
-		fc.NewCustomContainerConfig().WithImage(
-			functionConfig.ContainerImage,
-		),
-	)
-	if functionConfig.UpdateEnvironmentVariables {
-		request = request.WithEnvironmentVariables(
-			functionConfig.EnvironmentVariables)
-	}
-	if !functionConfig.Yes {
-		if !_comfirmDeploy() {
-			log.Fatalf("Canceled!")
-		}
-	}
-	output, err := client.UpdateFunction(request)
-	return output, err
-}
-
-func _getRegionFromRepository(repository string) string {
-	// repository example: registry.cn-zhangjiakou.aliyuncs.com/space/name
-	parts := strings.SplitN(repository, ".", 3)
-	if len(parts) < 3 {
-		log.Fatalf("No region in repository %s", repository)
-	}
-	return parts[1]
-}
-
-type DeployParams struct {
-	ServiceName  string
+type BaseDeployParams struct {
 	FunctionName string
 	Envfile      string
 	Repository   string
@@ -105,28 +22,39 @@ type DeployParams struct {
 	Yes          bool
 }
 
-func DoDeploy(params DeployParams) {
-	accessConfig, err := LoadAccessConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
+type AliyunDeployParams struct {
+	BaseDeployParams
+	ServiceName string
+}
+
+type TencentDeployParams struct {
+	BaseDeployParams
+	Region string
+}
+
+func _readEnvfile(envfile string) *map[string]string {
 	tomlLoads := toml.Unmarshal
 	if tomlLoads == nil {
 		fmt.Print("")
 	}
-	var env map[string]string
-	hasEnv := params.Envfile != ""
-	if hasEnv {
-		envdata, err := ReadUserFile(params.Envfile)
+	var env *map[string]string = nil
+	if envfile != "" {
+		envdata, err := common.ReadUserFile(envfile)
 		if err != nil {
 			log.Fatal(err)
 		}
-		env, err = godotenv.Unmarshal(string(envdata))
+		_env, err := godotenv.Unmarshal(string(envdata))
 		if err != nil {
 			log.Fatal(err)
 		}
+		env = &_env
 	}
-	if params.BuildId == "" {
+	return env
+}
+
+func _prepareImage(params BaseDeployParams) string {
+	buildId := params.BuildId
+	if buildId == "" {
 		buildResult, err := Build(BuildParams{
 			Dockerfile: params.Dockerfile,
 			Path:       params.BuildPath,
@@ -135,29 +63,49 @@ func DoDeploy(params DeployParams) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		params.BuildId = buildResult.BuildId
+		buildId = buildResult.BuildId
 	}
-	containerImage := fmt.Sprintf("%s:%s", params.Repository, params.BuildId)
-	region := _getRegionFromRepository(params.Repository)
-
+	containerImage := fmt.Sprintf("%s:%s", params.Repository, buildId)
 	log.Printf("[INFO] Push %s", containerImage)
-	err = DockerPush(DockerPushParams{Image: containerImage})
+	err := common.DockerPush(common.DockerPushParams{Image: containerImage})
 	if err != nil {
 		log.Fatal(err)
 	}
+	return buildId
+}
 
-	functionConfig := _FunctionConfig{
-		Region:                     region,
-		FunctionName:               params.FunctionName,
-		ServiceName:                params.ServiceName,
-		ContainerImage:             containerImage,
-		UpdateEnvironmentVariables: hasEnv,
-		EnvironmentVariables:       env,
-		Yes:                        params.Yes,
-	}
-	output, err := _updateFunction(accessConfig, &functionConfig)
+func DoDeployAliyun(params AliyunDeployParams) {
+	env := _readEnvfile(params.Envfile)
+	buildId := _prepareImage(params.BaseDeployParams)
+	output, err := aliyun.DoDeploy(aliyun.DeployParams{
+		ServiceName:          params.ServiceName,
+		FunctionName:         params.FunctionName,
+		Repository:           params.Repository,
+		Yes:                  params.Yes,
+		BuildId:              buildId,
+		EnvironmentVariables: env,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%s \n", output)
+	outputBytes, _ := json.MarshalIndent(output, "", "    ")
+	log.Printf("%s\n", string(outputBytes))
+}
+
+func DoDeployTencent(params TencentDeployParams) {
+	env := _readEnvfile(params.Envfile)
+	buildId := _prepareImage(params.BaseDeployParams)
+	output, err := tencent.DoDeploy(tencent.DeployParams{
+		Region:               params.Region,
+		FunctionName:         params.FunctionName,
+		Repository:           params.Repository,
+		Yes:                  params.Yes,
+		BuildId:              buildId,
+		EnvironmentVariables: env,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	outputBytes, _ := json.MarshalIndent(output, "", "    ")
+	log.Printf("%s\n", string(outputBytes))
 }
