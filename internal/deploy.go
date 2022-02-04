@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -88,8 +87,7 @@ func DoDeployAliyun(params AliyunDeployParams) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	outputBytes, _ := json.MarshalIndent(output, "", "    ")
-	log.Printf("%s\n", string(outputBytes))
+	common.LogPrettyJSON(output)
 }
 
 func DoDeployTencent(params TencentDeployParams) {
@@ -106,6 +104,5 @@ func DoDeployTencent(params TencentDeployParams) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	outputBytes, _ := json.MarshalIndent(output, "", "    ")
-	log.Printf("%s\n", string(outputBytes))
+	common.LogPrettyJSON(output)
 }

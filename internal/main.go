@@ -54,7 +54,7 @@ func _MakeDeployTencentCommand() *cobra.Command {
 	}
 	cmd.Flags().StringVar(
 		&params.Region, "region", "", "Region name [required]")
-	cmd.MarkFlagRequired("service")
+	cmd.MarkFlagRequired("region")
 	_AddBaseDeployFlags(&cmd, &params.BaseDeployParams)
 	return &cmd
 }
@@ -79,6 +79,25 @@ func _MakeBuildCommand() *cobra.Command {
 	return &cmd
 }
 
+func _MakeConfigCdnCacheTencentCommand() *cobra.Command {
+	var params TencentCDNCacheConfigParams
+	cmd := cobra.Command{
+		Use:   "config-cdn-cache-tencent",
+		Short: "config CDN cache rules tencent",
+		Run: func(cmd *cobra.Command, args []string) {
+			DoConfigCdnCacheTencent(params)
+		},
+	}
+	cmd.Flags().SortFlags = false
+	cmd.Flags().StringVar(
+		&params.Region, "region", "", "Region name [required]")
+	cmd.MarkFlagRequired("region")
+	cmd.Flags().StringVar(
+		&params.Domain, "domain", "", "Domain name [required]")
+	cmd.MarkFlagRequired("domain")
+	return &cmd
+}
+
 func Main() {
 	cli := cobra.Command{
 		Use:   "ezfaas",
@@ -93,6 +112,7 @@ func Main() {
 	cli.AddCommand(_MakeDeployAliyunCommand())
 	cli.AddCommand(_MakeDeployTencentCommand())
 	cli.AddCommand(_MakeBuildCommand())
+	cli.AddCommand(_MakeConfigCdnCacheTencentCommand())
 	err := cli.Execute()
 	if err != nil {
 		os.Exit(1)

@@ -9,6 +9,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.3.0
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn v1.0.340
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.340
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/scf v1.0.340
 )

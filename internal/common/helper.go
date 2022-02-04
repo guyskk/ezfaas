@@ -1,7 +1,9 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	gofilepath "path/filepath"
 
@@ -30,4 +32,9 @@ func Comfirm(label string) bool {
 
 func ComfirmDeploy() bool {
 	return Comfirm("Confirm Deploy")
+}
+
+func LogPrettyJSON(output interface{}) {
+	outputBytes, _ := json.MarshalIndent(output, "", "    ")
+	log.Printf("%s\n", string(outputBytes))
 }
