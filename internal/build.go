@@ -28,9 +28,17 @@ func GetBuildId(suffix string) string {
 	)
 }
 
+type BaseBuildParams struct {
+	Dockerfile    string
+	BuildPath     string
+	BuildPlatform string
+	BuildProgress string
+	BuildScript   string
+	BuildArgList  []string
+}
+
 type BuildParams struct {
-	Dockerfile string
-	Path       string
+	BaseBuildParams
 	Repository string
 }
 
@@ -51,20 +59,28 @@ func Build(p BuildParams) (*BuildResult, error) {
 	}
 	buildId := GetBuildId(suffix)
 	image := fmt.Sprintf("%s:%s", p.Repository, buildId)
-	var buildArgs = map[string]string{
-		"EZFAAS_COMMIT_ID": commitId,
-		"EZFAAS_BUILD_ID":  buildId,
+	var buildArgList = []string{
+		fmt.Sprintf("EZFAAS_COMMIT_ID=%s", commitId),
+		fmt.Sprintf("EZFAAS_BUILD_ID=%s", buildId),
 	}
+	buildArgList = append(buildArgList, p.BuildArgList...)
 	log.Printf("[INFO] COMMIT_ID=%s", commitId)
 	log.Printf("[INFO] BUILD_ID=%s", buildId)
 	log.Printf("[INFO] IMAGE=%s", image)
 	buildParams := common.DockerBuildParams{
-		File:      p.Dockerfile,
-		Path:      p.Path,
-		Image:     image,
-		BuildArgs: buildArgs,
+		File:         p.Dockerfile,
+		Path:         p.BuildPath,
+		Progress:     p.BuildProgress,
+		Platform:     p.BuildPlatform,
+		Image:        image,
+		BuildArgList: buildArgList,
 	}
-	buildErr := common.DockerBuild(buildParams)
+	var buildErr error
+	if p.BuildScript == "" {
+		buildErr = common.DockerBuild(buildParams)
+	} else {
+		buildErr = common.DockerScriptBuild(p.BuildScript, buildParams)
+	}
 	if buildErr != nil {
 		return nil, buildErr
 	}

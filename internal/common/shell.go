@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	gofilepath "path/filepath"
 	"strings"
+
+	"github.com/mitchellh/go-homedir"
 )
 
 func Shell(name string, arg ...string) error {
@@ -27,26 +30,89 @@ func GetCommitId() (string, error) {
 }
 
 type DockerBuildParams = struct {
-	File      string
-	Path      string
-	Image     string
-	BuildArgs map[string]string
+	File         string
+	Path         string
+	Image        string
+	Platform     string
+	Progress     string
+	BuildArgList []string
+}
+
+func _getPlatform(p DockerBuildParams) string {
+	platform := p.Platform
+	if platform == "" {
+		platform = "linux/amd64"
+	}
+	return platform
+}
+
+func _getProgress(p DockerBuildParams) string {
+	progress := p.Progress
+	if progress == "" {
+		progress = "auto"
+	}
+	return progress
 }
 
 /* Call docker build command */
 func DockerBuild(p DockerBuildParams) error {
 	var commandArgs []string = []string{
 		"build",
-		"--platform", "linux/amd64",
+		"--platform", _getPlatform(p),
+		"--progress", _getProgress(p),
 		"-f", p.File,
 		"-t", p.Image,
 	}
-	for k, v := range p.BuildArgs {
+	for _, arg := range p.BuildArgList {
 		commandArgs = append(commandArgs, "--build-arg")
-		commandArgs = append(commandArgs, fmt.Sprintf("%s=%s", k, v))
+		commandArgs = append(commandArgs, arg)
 	}
 	commandArgs = append(commandArgs, p.Path)
 	return Shell("docker", commandArgs...)
+}
+
+func isFileExecAny(filepath string) bool {
+	fileinfo, err := os.Stat(filepath)
+	if err != nil {
+		return false
+	}
+	mode := fileinfo.Mode()
+	return mode&0111 != 0
+}
+
+func DockerScriptBuild(script string, p DockerBuildParams) error {
+	script, err := homedir.Expand(script)
+	if err != nil {
+		return err
+	}
+	script = gofilepath.ToSlash(script)
+	var envList []string = os.Environ()
+	envList = append(envList, []string{
+		fmt.Sprintf("EZFAAS_BUILD_PLATFORM=%s", _getPlatform(p)),
+		fmt.Sprintf("EZFAAS_BUILD_PROGRESS=%s", _getProgress(p)),
+		fmt.Sprintf("EZFAAS_BUILD_DOCKER_FILE=%s", p.File),
+		fmt.Sprintf("EZFAAS_BUILD_DOCKER_IMAGE=%s", p.Image),
+	}...)
+	// https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg
+	for _, item := range p.BuildArgList {
+		parts := strings.SplitN(item, "=", 2)
+		// ignore if not key=value format, not need to process
+		if len(parts) == 2 {
+			k, v := parts[0], parts[1]
+			envList = append(envList, fmt.Sprintf("%s=%s", k, v))
+		}
+	}
+	var cmd *exec.Cmd
+	if isFileExecAny(script) {
+		cmd = exec.Command(script)
+	} else {
+		cmd = exec.Command("bash", script)
+	}
+	cmd.Env = envList
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmdErr := cmd.Run()
+	return cmdErr
 }
 
 /* Get docker image digest value */

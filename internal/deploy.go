@@ -12,12 +12,11 @@ import (
 )
 
 type BaseDeployParams struct {
+	BaseBuildParams
 	FunctionName string
 	Envfile      string
 	Repository   string
 	BuildId      string
-	Dockerfile   string
-	BuildPath    string
 	Yes          bool
 }
 
@@ -55,9 +54,8 @@ func _prepareImage(params BaseDeployParams) string {
 	buildId := params.BuildId
 	if buildId == "" {
 		buildResult, err := Build(BuildParams{
-			Dockerfile: params.Dockerfile,
-			Path:       params.BuildPath,
-			Repository: params.Repository,
+			BaseBuildParams: params.BaseBuildParams,
+			Repository:      params.Repository,
 		})
 		if err != nil {
 			log.Fatal(err)
