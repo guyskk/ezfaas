@@ -28,7 +28,7 @@ func getNodeCacheRules() []*cdn.RuleCache {
 	indexCacheConfig := cdn.RuleCacheConfig{
 		Cache: &cdn.CacheConfigCache{
 			Switch:             &ON,
-			CacheTime:          int64Ref(10 * 60),
+			CacheTime:          int64Ref(30),
 			CompareMaxAge:      &OFF,
 			IgnoreCacheControl: &OFF,
 			IgnoreSetCookie:    &OFF,
