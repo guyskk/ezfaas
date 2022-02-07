@@ -102,13 +102,18 @@ func DoDeploy(params DeployParams) (*fc.UpdateFunctionOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+	hasEnv := params.EnvironmentVariables != nil
+	env := map[string]string{}
+	if hasEnv {
+		env = *params.EnvironmentVariables
+	}
 	functionConfig := _FunctionConfig{
 		Region:                     region,
 		FunctionName:               params.FunctionName,
 		ServiceName:                params.ServiceName,
 		ContainerImage:             containerImage,
-		UpdateEnvironmentVariables: params.EnvironmentVariables != nil,
-		EnvironmentVariables:       *params.EnvironmentVariables,
+		UpdateEnvironmentVariables: hasEnv,
+		EnvironmentVariables:       env,
 		Yes:                        params.Yes,
 	}
 	output, err := _updateFunction(accessConfig, &functionConfig)
