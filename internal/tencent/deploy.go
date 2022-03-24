@@ -74,8 +74,8 @@ func _getFunctionStatus(
 func _waitFunctionActive(
 	client *scf.Client,
 	params DeployParams,
+	timeout time.Duration,
 ) error {
-	timeout := time.Duration(30 * time.Second)
 	deadline := time.Now().Add(timeout)
 	i := 1
 	for {
@@ -175,12 +175,22 @@ func DoDeploy(params DeployParams) (*scf.GetFunctionResponse, error) {
 	if status != FUNCTION_STATUS_ACTIVE {
 		return nil, fmt.Errorf("function not active, status=%s", status)
 	}
+	imageErr := WaitDockerImageReady(WaitDockerImageParams{
+		Region:     params.Region,
+		Repository: params.Repository,
+		BuildId:    params.BuildId,
+		Timeout:    time.Duration(30 * time.Second),
+	})
+	if imageErr != nil {
+		return nil, imageErr
+	}
 	log.Println("[INFO] Update function code...")
 	_, codeErr := _updateCode(client, params, imageUri)
 	if codeErr != nil {
 		return nil, codeErr
 	}
-	err = _waitFunctionActive(client, params)
+	waitFunctionTimeout := time.Duration(30 * time.Second)
+	err = _waitFunctionActive(client, params, waitFunctionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +200,7 @@ func DoDeploy(params DeployParams) (*scf.GetFunctionResponse, error) {
 		if configErr != nil {
 			return nil, configErr
 		}
-		err = _waitFunctionActive(client, params)
+		err = _waitFunctionActive(client, params, waitFunctionTimeout)
 		if err != nil {
 			return nil, err
 		}
