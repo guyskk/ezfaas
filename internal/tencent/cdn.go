@@ -70,6 +70,7 @@ func getNodeCacheRules() []*cdn.RuleCache {
 				strRef("/css"),
 				strRef("/fonts"),
 				strRef("/imgs"),
+				strRef("/img"),
 				strRef("/libs"),
 				strRef("/static"),
 				strRef("/assets"),
