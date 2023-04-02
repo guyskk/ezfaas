@@ -17,6 +17,8 @@ func _AddBaseBuildFlags(cmd *cobra.Command, params *BaseBuildParams) {
 	cmd.Flags().StringVar(
 		&params.BuildProgress, "build-progress", "", "Docker build --progress")
 	cmd.Flags().StringArrayVar(
+		&params.ImageTagList, "image-tag", []string{}, "Docker build --tag name:version")
+	cmd.Flags().StringArrayVar(
 		&params.BuildArgList, "build-arg", []string{}, "Docker build --build-arg")
 	cmd.Flags().StringVar(
 		&params.BuildScript, "build-script", "", "Bash or executable script to build docker image")

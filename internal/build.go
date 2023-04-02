@@ -35,6 +35,7 @@ type BaseBuildParams struct {
 	BuildProgress string
 	BuildScript   string
 	BuildArgList  []string
+	ImageTagList  []string
 }
 
 type BuildParams struct {
@@ -59,6 +60,10 @@ func Build(p BuildParams) (*BuildResult, error) {
 	}
 	buildId := GetBuildId(suffix)
 	image := fmt.Sprintf("%s:%s", p.Repository, buildId)
+	imageList := []string{image}
+	for _, tag := range p.ImageTagList {
+		imageList = append(imageList, tag)
+	}
 	var buildArgList = []string{
 		fmt.Sprintf("EZFAAS_COMMIT_ID=%s", commitId),
 		fmt.Sprintf("EZFAAS_BUILD_ID=%s", buildId),
@@ -66,13 +71,15 @@ func Build(p BuildParams) (*BuildResult, error) {
 	buildArgList = append(buildArgList, p.BuildArgList...)
 	log.Printf("[INFO] COMMIT_ID=%s", commitId)
 	log.Printf("[INFO] BUILD_ID=%s", buildId)
-	log.Printf("[INFO] IMAGE=%s", image)
+	for _, image := range imageList {
+		log.Printf("[INFO] IMAGE=%s", image)
+	}
 	buildParams := common.DockerBuildParams{
 		File:         p.Dockerfile,
 		Path:         p.BuildPath,
 		Progress:     p.BuildProgress,
 		Platform:     p.BuildPlatform,
-		Image:        image,
+		ImageList:    imageList,
 		BuildArgList: buildArgList,
 	}
 	var buildErr error

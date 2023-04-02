@@ -32,7 +32,7 @@ func GetCommitId() (string, error) {
 type DockerBuildParams = struct {
 	File         string
 	Path         string
-	Image        string
+	ImageList    []string
 	Platform     string
 	Progress     string
 	BuildArgList []string
@@ -61,7 +61,9 @@ func DockerBuild(p DockerBuildParams) error {
 		"--platform", _getPlatform(p),
 		"--progress", _getProgress(p),
 		"-f", p.File,
-		"-t", p.Image,
+	}
+	for _, image := range p.ImageList {
+		commandArgs = append(commandArgs, "-t", image)
 	}
 	for _, arg := range p.BuildArgList {
 		commandArgs = append(commandArgs, "--build-arg")
@@ -91,7 +93,7 @@ func DockerScriptBuild(script string, p DockerBuildParams) error {
 		fmt.Sprintf("EZFAAS_BUILD_PLATFORM=%s", _getPlatform(p)),
 		fmt.Sprintf("EZFAAS_BUILD_PROGRESS=%s", _getProgress(p)),
 		fmt.Sprintf("EZFAAS_BUILD_DOCKER_FILE=%s", p.File),
-		fmt.Sprintf("EZFAAS_BUILD_DOCKER_IMAGE=%s", p.Image),
+		fmt.Sprintf("EZFAAS_BUILD_DOCKER_IMAGE=%s", p.ImageList[0]),
 	}...)
 	// https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg
 	for _, item := range p.BuildArgList {
