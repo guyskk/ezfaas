@@ -11,6 +11,8 @@ func _AddBaseBuildFlags(cmd *cobra.Command, params *BaseBuildParams) {
 	cmd.Flags().StringVar(
 		&params.Dockerfile, "dockerfile", "Dockerfile", "Dockerfile path")
 	cmd.Flags().StringVar(
+		&params.DockerConfig, "docker-config", "", "Docker config path")
+	cmd.Flags().StringVar(
 		&params.BuildPath, "build-path", ".", "Docker build path")
 	cmd.Flags().StringVar(
 		&params.BuildPlatform, "build-platform", "", "Docker build --platform")

@@ -30,6 +30,7 @@ func GetCommitId() (string, error) {
 }
 
 type DockerBuildParams = struct {
+	DockerConfig string
 	File         string
 	Path         string
 	ImageList    []string
@@ -54,14 +55,21 @@ func _getProgress(p DockerBuildParams) string {
 	return progress
 }
 
+func _getDockerCommandArgs(dockerConfig string) []string {
+	var commandArgs []string = []string{}
+	if dockerConfig != "" {
+		commandArgs = append(commandArgs, "--config", dockerConfig)
+	}
+	return commandArgs
+}
+
 /* Call docker build command */
 func DockerBuild(p DockerBuildParams) error {
-	var commandArgs []string = []string{
-		"build",
+	var commandArgs []string = _getDockerCommandArgs(p.DockerConfig)
+	commandArgs = append(commandArgs, "build",
 		"--platform", _getPlatform(p),
 		"--progress", _getProgress(p),
-		"-f", p.File,
-	}
+		"-f", p.File)
 	for _, image := range p.ImageList {
 		commandArgs = append(commandArgs, "-t", image)
 	}
@@ -135,10 +143,13 @@ func GetDockerImageDigest(image string) (string, error) {
 }
 
 type DockerPushParams struct {
-	Image string
+	DockerConfig string
+	Image        string
 }
 
 /* Call docker push command */
 func DockerPush(p DockerPushParams) error {
-	return Shell("docker", "push", p.Image)
+	var commandArgs []string = _getDockerCommandArgs(p.DockerConfig)
+	commandArgs = append(commandArgs, "push", p.Image)
+	return Shell("docker", commandArgs...)
 }

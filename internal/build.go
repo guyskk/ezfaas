@@ -29,6 +29,7 @@ func GetBuildId(suffix string) string {
 }
 
 type BaseBuildParams struct {
+	DockerConfig  string
 	Dockerfile    string
 	BuildPath     string
 	BuildPlatform string
@@ -61,9 +62,7 @@ func Build(p BuildParams) (*BuildResult, error) {
 	buildId := GetBuildId(suffix)
 	image := fmt.Sprintf("%s:%s", p.Repository, buildId)
 	imageList := []string{image}
-	for _, tag := range p.ImageTagList {
-		imageList = append(imageList, tag)
-	}
+	imageList = append(imageList, p.ImageTagList...)
 	var buildArgList = []string{
 		fmt.Sprintf("EZFAAS_COMMIT_ID=%s", commitId),
 		fmt.Sprintf("EZFAAS_BUILD_ID=%s", buildId),
