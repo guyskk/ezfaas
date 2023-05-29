@@ -28,7 +28,7 @@ func getNodeCacheRules() []*cdn.RuleCache {
 	indexCacheConfig := cdn.RuleCacheConfig{
 		Cache: &cdn.CacheConfigCache{
 			Switch:             &ON,
-			CacheTime:          int64Ref(30),
+			CacheTime:          int64Ref(10),
 			CompareMaxAge:      &OFF,
 			IgnoreCacheControl: &OFF,
 			IgnoreSetCookie:    &OFF,
@@ -111,7 +111,8 @@ func getBrowserCacheRules() []*cdn.MaxAgeRule {
 			MaxAgeContents: []*string{
 				strRef("*"),
 			},
-			MaxAgeTime: indexMaxAgeTime,
+			MaxAgeTime:   indexMaxAgeTime,
+			FollowOrigin: &ON,
 		},
 		{
 			MaxAgeType: strRef("directory"),
