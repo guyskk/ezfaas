@@ -103,7 +103,7 @@ func getNodeCacheRules() []*cdn.RuleCache {
 }
 
 func getBrowserCacheRules() []*cdn.MaxAgeRule {
-	indexMaxAgeTime := int64Ref(0)
+	indexMaxAgeTime := int64Ref(60)
 	staticMaxAgeTime := int64Ref(10 * 24 * 60 * 60)
 	return []*cdn.MaxAgeRule{
 		{
