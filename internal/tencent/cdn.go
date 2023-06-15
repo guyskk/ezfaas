@@ -43,8 +43,8 @@ func getNodeCacheRules() []*cdn.RuleCache {
 			IgnoreSetCookie:    &OFF,
 		},
 	}
-	originCacheConfig := cdn.RuleCacheConfig{
-		FollowOrigin: &cdn.CacheConfigFollowOrigin{
+	apiCacheConfig := cdn.RuleCacheConfig{
+		NoCache: &cdn.CacheConfigNoCache{
 			Switch: &ON,
 		},
 	}
@@ -61,7 +61,7 @@ func getNodeCacheRules() []*cdn.RuleCache {
 			RulePaths: []*string{
 				strRef("/api"),
 			},
-			CacheConfig: &originCacheConfig,
+			CacheConfig: &apiCacheConfig,
 		},
 		{
 			RuleType: strRef("directory"),
@@ -103,7 +103,7 @@ func getNodeCacheRules() []*cdn.RuleCache {
 }
 
 func getBrowserCacheRules() []*cdn.MaxAgeRule {
-	indexMaxAgeTime := int64Ref(60)
+	indexMaxAgeTime := int64Ref(30)
 	staticMaxAgeTime := int64Ref(10 * 24 * 60 * 60)
 	return []*cdn.MaxAgeRule{
 		{
