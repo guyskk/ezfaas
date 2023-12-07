@@ -17,6 +17,7 @@ type BaseDeployParams struct {
 	Envfile      string
 	Repository   string
 	BuildId      string
+	IsJob        bool
 	Yes          bool
 }
 
@@ -91,11 +92,19 @@ func DoDeployAliyun(params AliyunDeployParams) {
 func DoDeployTencent(params TencentDeployParams) {
 	env := _readEnvfile(params.Envfile)
 	buildId := _prepareImage(params.BaseDeployParams)
+	var imagePort *int64
+	var jobImagePort int64 = -1
+	if params.IsJob {
+		imagePort = &jobImagePort
+	} else {
+		imagePort = nil
+	}
 	output, err := tencent.DoDeploy(tencent.DeployParams{
 		Region:               params.Region,
 		FunctionName:         params.FunctionName,
 		Repository:           params.Repository,
 		Yes:                  params.Yes,
+		ImagePort:            imagePort,
 		BuildId:              buildId,
 		EnvironmentVariables: env,
 	})

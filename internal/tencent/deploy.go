@@ -17,6 +17,7 @@ type DeployParams struct {
 	FunctionName         string
 	Repository           string
 	BuildId              string
+	ImagePort            *int64 // -1表示Job函数，没有端口
 	EnvironmentVariables *map[string]string
 	Yes                  bool
 }
@@ -112,6 +113,7 @@ func _updateCode(
 		ImageConfig: &scf.ImageConfig{
 			ImageType: &imageType,
 			ImageUri:  &imageUri,
+			ImagePort: params.ImagePort,
 		},
 	}
 	return client.UpdateFunctionCode(request)

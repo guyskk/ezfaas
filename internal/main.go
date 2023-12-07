@@ -40,6 +40,8 @@ func _AddBaseDeployFlags(cmd *cobra.Command, params *BaseDeployParams) {
 	cmd.Flags().StringVar(
 		&params.Envfile, "envfile", "", "Envfile path")
 	cmd.Flags().BoolVar(
+		&params.IsJob, "is-job", false, "Is Job Function")
+	cmd.Flags().BoolVar(
 		&params.Yes, "yes", false, "Confirm deploy")
 }
 
