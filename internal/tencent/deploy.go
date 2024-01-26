@@ -106,16 +106,24 @@ func _updateCode(
 	params DeployParams,
 	imageUri string,
 ) (*scf.UpdateFunctionCodeResponse, error) {
+	functionInfoResponse, err := _getFunctionInfo(client, params)
+	if err != nil {
+		return nil, err
+	}
+	var containerImageAccelerate *bool = nil
+	imageConfig := functionInfoResponse.Response.ImageConfig
+	if imageConfig != nil {
+		containerImageAccelerate = imageConfig.ContainerImageAccelerate
+	}
 	request := scf.NewUpdateFunctionCodeRequest()
 	request.FunctionName = &params.FunctionName
 	imageType := "personal"
-	containerImageAccelerate := true
 	request.Code = &scf.Code{
 		ImageConfig: &scf.ImageConfig{
 			ImageType:                &imageType,
 			ImageUri:                 &imageUri,
 			ImagePort:                params.ImagePort,
-			ContainerImageAccelerate: &containerImageAccelerate,
+			ContainerImageAccelerate: containerImageAccelerate,
 		},
 	}
 	return client.UpdateFunctionCode(request)
