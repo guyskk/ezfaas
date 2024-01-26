@@ -57,9 +57,9 @@ func _getFunctionInfo(
 }
 
 /*
-   当使用 云 API 管理函数（增、删、改、查）时，由于接口异步，
-   首先需要查询函数当前状态，然后进行下一步操作。
-   https://cloud.tencent.com/document/product/583/47175
+当使用 云 API 管理函数（增、删、改、查）时，由于接口异步，
+首先需要查询函数当前状态，然后进行下一步操作。
+https://cloud.tencent.com/document/product/583/47175
 */
 func _getFunctionStatus(
 	client *scf.Client,
@@ -109,11 +109,13 @@ func _updateCode(
 	request := scf.NewUpdateFunctionCodeRequest()
 	request.FunctionName = &params.FunctionName
 	imageType := "personal"
+	containerImageAccelerate := true
 	request.Code = &scf.Code{
 		ImageConfig: &scf.ImageConfig{
-			ImageType: &imageType,
-			ImageUri:  &imageUri,
-			ImagePort: params.ImagePort,
+			ImageType:                &imageType,
+			ImageUri:                 &imageUri,
+			ImagePort:                params.ImagePort,
+			ContainerImageAccelerate: &containerImageAccelerate,
 		},
 	}
 	return client.UpdateFunctionCode(request)
