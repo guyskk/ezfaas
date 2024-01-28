@@ -144,15 +144,6 @@ func _updateConfig(
 	return client.UpdateFunctionConfiguration(request)
 }
 
-func _doPublish(
-	client *scf.Client,
-	params DeployParams,
-) (*scf.PublishVersionResponse, error) {
-	request := scf.NewPublishVersionRequest()
-	request.FunctionName = &params.FunctionName
-	return client.PublishVersion(request)
-}
-
 func DoDeploy(params DeployParams) (*scf.GetFunctionResponse, error) {
 	dockerImage := fmt.Sprintf("%s:%s", params.Repository, params.BuildId)
 	imageDigest, digestErr := ezcommon.GetDockerImageDigest(dockerImage)
@@ -216,11 +207,6 @@ func DoDeploy(params DeployParams) (*scf.GetFunctionResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-	log.Println("[INFO] Publish function...")
-	_, publishErr := _doPublish(client, params)
-	if publishErr != nil {
-		return nil, publishErr
 	}
 	response, err := _getFunctionInfo(client, params)
 	if err != nil {
