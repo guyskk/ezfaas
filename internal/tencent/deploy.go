@@ -192,7 +192,7 @@ func DoDeploy(params DeployParams) (*scf.GetFunctionResponse, error) {
 	if codeErr != nil {
 		return nil, codeErr
 	}
-	waitFunctionTimeout := time.Duration(60 * time.Second)
+	waitFunctionTimeout := time.Duration(180 * time.Second)
 	err = _waitFunctionActive(client, params, waitFunctionTimeout)
 	if err != nil {
 		return nil, err
