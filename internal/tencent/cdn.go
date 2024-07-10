@@ -24,6 +24,10 @@ func int64Ref(x int64) *int64 {
 	return &x
 }
 
+func uint64Ref(x uint64) *uint64 {
+	return &x
+}
+
 func getNodeCacheRules() []*cdn.RuleCache {
 	indexCacheConfig := cdn.RuleCacheConfig{
 		Cache: &cdn.CacheConfigCache{
@@ -182,6 +186,37 @@ func UpdateCDNCacheConfig(
 	request.MaxAge = &cdn.MaxAge{
 		Switch:      &ON,
 		MaxAgeRules: getBrowserCacheRules(),
+	}
+	// 配置限流和用量封顶
+	request.IpFreqLimit = &cdn.IpFreqLimit{
+		Switch: &ON,
+		Qps:    int64Ref(5),
+	}
+	request.DownstreamCapping = &cdn.DownstreamCapping{
+		Switch: &ON,
+		CappingRules: []*cdn.CappingRule{
+			{
+				RuleType: strRef("all"),
+				RulePaths: []*string{
+					strRef("*"),
+				},
+				KBpsThreshold: int64Ref(1024),
+			},
+		},
+	}
+	bandwidthAlertItem := &cdn.StatisticItem{
+		Switch:          &ON,
+		AlertSwitch:     &ON,
+		Type:            strRef("moment"),
+		Metric:          strRef("bandwidth"),
+		BpsThreshold:    uint64Ref(20 * 1000 * 1000),
+		CounterMeasure:  strRef("RETURN_404"),
+		Cycle:           uint64Ref(5),
+		UnBlockTime:     uint64Ref(60),
+		AlertPercentage: uint64Ref(50),
+	}
+	request.BandwidthAlert = &cdn.BandwidthAlert{
+		StatisticItems: []*cdn.StatisticItem{bandwidthAlertItem},
 	}
 	response, err := client.UpdateDomainConfig(request)
 	if err != nil {
