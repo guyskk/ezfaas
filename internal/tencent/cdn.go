@@ -1,14 +1,17 @@
 package tencent
 
 import (
+	"strings"
+
 	cdn "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn/v20180606"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 )
 
 type CDNCacheConfigParams struct {
-	Region string
-	Domain string
+	Region     string
+	Domain     string
+	UsageLimit string
 }
 
 var (
@@ -165,6 +168,43 @@ func getBrowserCacheRules() []*cdn.MaxAgeRule {
 	}
 }
 
+func addUsageLimitRule(request *cdn.UpdateDomainConfigRequest, isEnable bool) {
+	status := OFF
+	if isEnable {
+		status = ON
+	}
+	request.IpFreqLimit = &cdn.IpFreqLimit{
+		Switch: &status,
+		Qps:    int64Ref(50),
+	}
+	request.DownstreamCapping = &cdn.DownstreamCapping{
+		Switch: &status,
+		CappingRules: []*cdn.CappingRule{
+			{
+				RuleType: strRef("all"),
+				RulePaths: []*string{
+					strRef("*"),
+				},
+				KBpsThreshold: int64Ref(1024),
+			},
+		},
+	}
+	bandwidthAlertItem := &cdn.StatisticItem{
+		Switch:          &status,
+		AlertSwitch:     &ON,
+		Type:            strRef("moment"),
+		Metric:          strRef("bandwidth"),
+		BpsThreshold:    uint64Ref(20 * 1000 * 1000),
+		CounterMeasure:  strRef("RETURN_404"),
+		Cycle:           uint64Ref(5),
+		UnBlockTime:     uint64Ref(60),
+		AlertPercentage: uint64Ref(50),
+	}
+	request.BandwidthAlert = &cdn.BandwidthAlert{
+		StatisticItems: []*cdn.StatisticItem{bandwidthAlertItem},
+	}
+}
+
 func UpdateCDNCacheConfig(
 	params CDNCacheConfigParams,
 ) (*cdn.UpdateDomainConfigResponse, error) {
@@ -188,35 +228,11 @@ func UpdateCDNCacheConfig(
 		MaxAgeRules: getBrowserCacheRules(),
 	}
 	// 配置限流和用量封顶
-	request.IpFreqLimit = &cdn.IpFreqLimit{
-		Switch: &ON,
-		Qps:    int64Ref(5),
-	}
-	request.DownstreamCapping = &cdn.DownstreamCapping{
-		Switch: &ON,
-		CappingRules: []*cdn.CappingRule{
-			{
-				RuleType: strRef("all"),
-				RulePaths: []*string{
-					strRef("*"),
-				},
-				KBpsThreshold: int64Ref(1024),
-			},
-		},
-	}
-	bandwidthAlertItem := &cdn.StatisticItem{
-		Switch:          &ON,
-		AlertSwitch:     &ON,
-		Type:            strRef("moment"),
-		Metric:          strRef("bandwidth"),
-		BpsThreshold:    uint64Ref(20 * 1000 * 1000),
-		CounterMeasure:  strRef("RETURN_404"),
-		Cycle:           uint64Ref(5),
-		UnBlockTime:     uint64Ref(60),
-		AlertPercentage: uint64Ref(50),
-	}
-	request.BandwidthAlert = &cdn.BandwidthAlert{
-		StatisticItems: []*cdn.StatisticItem{bandwidthAlertItem},
+	usageLimit := strings.ToLower(params.UsageLimit)
+	if usageLimit == ON {
+		addUsageLimitRule(request, true)
+	} else if usageLimit == OFF {
+		addUsageLimitRule(request, false)
 	}
 	response, err := client.UpdateDomainConfig(request)
 	if err != nil {

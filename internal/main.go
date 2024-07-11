@@ -110,6 +110,8 @@ func _MakeConfigCdnCacheTencentCommand() *cobra.Command {
 	cmd.Flags().StringVar(
 		&params.Domain, "domain", "", "Domain name [required]")
 	cmd.MarkFlagRequired("domain")
+	cmd.Flags().StringVar(
+		&params.UsageLimit, "usagelimit", "", "ON/OFF usage limit")
 	return &cmd
 }
 
