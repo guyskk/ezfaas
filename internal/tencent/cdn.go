@@ -194,7 +194,7 @@ func addUsageLimitRule(request *cdn.UpdateDomainConfigRequest, isEnable bool) {
 		AlertSwitch:     &ON,
 		Type:            strRef("moment"),
 		Metric:          strRef("bandwidth"),
-		BpsThreshold:    uint64Ref(20 * 1000 * 1000),
+		BpsThreshold:    uint64Ref(10 * 1000 * 1000),
 		CounterMeasure:  strRef("RETURN_404"),
 		Cycle:           uint64Ref(5),
 		UnBlockTime:     uint64Ref(60),
