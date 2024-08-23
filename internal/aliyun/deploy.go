@@ -5,13 +5,15 @@ import (
 	"log"
 	"strings"
 
-	"github.com/aliyun/fc-go-sdk"
+	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
+	fc "github.com/alibabacloud-go/fc-20230330/v4/client"
+	tea "github.com/alibabacloud-go/tea/tea"
+
 	"github.com/guyskk/ezfaas/internal/common"
 )
 
 type _FunctionConfig struct {
 	Region                     string
-	ServiceName                string
 	FunctionName               string
 	ContainerImage             string
 	UpdateEnvironmentVariables bool
@@ -19,13 +21,30 @@ type _FunctionConfig struct {
 	Yes                        bool
 }
 
+func _getEndpoint(accountId string, region string) string {
+	endpoint := fmt.Sprintf(
+		"%s.%s.fc.aliyuncs.com",
+		accountId,
+		region,
+	)
+	return endpoint
+}
+
+func _getClientConfig(accessConfig *AccessConfig, endpoint string) *openapi.Config {
+	config := &openapi.Config{
+		AccessKeyId:     tea.String(accessConfig.ALIBABA_CLOUD_ACCESS_KEY_ID),
+		AccessKeySecret: tea.String(accessConfig.ALIBABA_CLOUD_ACCESS_KEY_SECRET),
+		Endpoint:        tea.String(endpoint),
+	}
+	return config
+}
+
 func _updateFunction(
 	accessConfig *AccessConfig,
 	functionConfig *_FunctionConfig,
-) (*fc.UpdateFunctionOutput, error) {
+) (*fc.UpdateFunctionResponse, error) {
 	log.Printf(
-		"[INFO] Service=%s Function=%s",
-		functionConfig.ServiceName,
+		"[INFO] Function=%s",
 		functionConfig.FunctionName,
 	)
 	log.Printf(
@@ -36,41 +55,37 @@ func _updateFunction(
 		"[INFO] UpdateEnvironmentVariables=%t",
 		functionConfig.UpdateEnvironmentVariables,
 	)
-	endpoint := fmt.Sprintf(
-		"%s.%s.fc.aliyuncs.com",
+	endpoint := _getEndpoint(
 		accessConfig.ALIBABA_CLOUD_ACCOUNT_ID,
 		functionConfig.Region,
 	)
 	log.Printf("[INFO] Deploy Endpoint=%s", endpoint)
-	client, err := fc.NewClient(
-		endpoint,
-		"2016-08-15",
-		accessConfig.ALIBABA_CLOUD_ACCESS_KEY_ID,
-		accessConfig.ALIBABA_CLOUD_ACCESS_KEY_SECRET,
-	)
+	clientConfig := _getClientConfig(accessConfig, endpoint)
+	client, err := fc.NewClient(clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	request := fc.NewUpdateFunctionInput(
-		functionConfig.ServiceName,
-		functionConfig.FunctionName,
-	).WithRuntime(
-		"custom-container",
-	).WithCustomContainerConfig(
-		fc.NewCustomContainerConfig().WithImage(
-			functionConfig.ContainerImage,
-		),
-	)
+	updateFunctionInput := fc.UpdateFunctionInput{
+		CustomContainerConfig: &fc.CustomContainerConfig{
+			Image: tea.String(functionConfig.ContainerImage),
+		},
+	}
 	if functionConfig.UpdateEnvironmentVariables {
-		request = request.WithEnvironmentVariables(
-			functionConfig.EnvironmentVariables)
+		fcEnvVars := map[string]*string{}
+		for k, v := range functionConfig.EnvironmentVariables {
+			fcEnvVars[k] = tea.String(v)
+		}
+		updateFunctionInput.EnvironmentVariables = fcEnvVars
+	}
+	request := fc.UpdateFunctionRequest{
+		Body: &updateFunctionInput,
 	}
 	if !functionConfig.Yes {
 		if !common.ComfirmDeploy() {
 			return nil, common.ErrCanceled
 		}
 	}
-	output, err := client.UpdateFunction(request)
+	output, err := client.UpdateFunction(&functionConfig.FunctionName, &request)
 	return output, err
 }
 
@@ -84,7 +99,6 @@ func _getRegionFromRepository(repository string) (string, error) {
 }
 
 type DeployParams struct {
-	ServiceName          string
 	FunctionName         string
 	Repository           string
 	BuildId              string
@@ -92,7 +106,7 @@ type DeployParams struct {
 	Yes                  bool
 }
 
-func DoDeploy(params DeployParams) (*fc.UpdateFunctionOutput, error) {
+func DoDeploy(params DeployParams) (*fc.UpdateFunctionResponse, error) {
 	accessConfig, err := LoadAccessConfig()
 	if err != nil {
 		return nil, err
@@ -110,7 +124,6 @@ func DoDeploy(params DeployParams) (*fc.UpdateFunctionOutput, error) {
 	functionConfig := _FunctionConfig{
 		Region:                     region,
 		FunctionName:               params.FunctionName,
-		ServiceName:                params.ServiceName,
 		ContainerImage:             containerImage,
 		UpdateEnvironmentVariables: hasEnv,
 		EnvironmentVariables:       env,

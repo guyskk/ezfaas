@@ -17,18 +17,17 @@ type BaseDeployParams struct {
 	Envfile      string
 	Repository   string
 	BuildId      string
-	IsJob        bool
 	Yes          bool
 }
 
 type AliyunDeployParams struct {
 	BaseDeployParams
-	ServiceName string
 }
 
 type TencentDeployParams struct {
 	BaseDeployParams
 	Region string
+	IsJob  bool
 }
 
 func _readEnvfile(envfile string) *map[string]string {
@@ -76,7 +75,6 @@ func DoDeployAliyun(params AliyunDeployParams) {
 	env := _readEnvfile(params.Envfile)
 	buildId := _prepareImage(params.BaseDeployParams)
 	output, err := aliyun.DoDeploy(aliyun.DeployParams{
-		ServiceName:          params.ServiceName,
 		FunctionName:         params.FunctionName,
 		Repository:           params.Repository,
 		Yes:                  params.Yes,

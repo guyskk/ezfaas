@@ -40,8 +40,6 @@ func _AddBaseDeployFlags(cmd *cobra.Command, params *BaseDeployParams) {
 	cmd.Flags().StringVar(
 		&params.Envfile, "envfile", "", "Envfile path")
 	cmd.Flags().BoolVar(
-		&params.IsJob, "is-job", false, "Is Job Function")
-	cmd.Flags().BoolVar(
 		&params.Yes, "yes", false, "Confirm deploy")
 }
 
@@ -54,9 +52,6 @@ func _MakeDeployAliyunCommand() *cobra.Command {
 			DoDeployAliyun(params)
 		},
 	}
-	cmd.Flags().StringVar(
-		&params.ServiceName, "service", "", "Service name [required]")
-	cmd.MarkFlagRequired("service")
 	_AddBaseDeployFlags(&cmd, &params.BaseDeployParams)
 	return &cmd
 }
@@ -70,10 +65,12 @@ func _MakeDeployTencentCommand() *cobra.Command {
 			DoDeployTencent(params)
 		},
 	}
+	_AddBaseDeployFlags(&cmd, &params.BaseDeployParams)
 	cmd.Flags().StringVar(
 		&params.Region, "region", "", "Region name [required]")
 	cmd.MarkFlagRequired("region")
-	_AddBaseDeployFlags(&cmd, &params.BaseDeployParams)
+	cmd.Flags().BoolVar(
+		&params.IsJob, "is-job", false, "Is Job Function")
 	return &cmd
 }
 
